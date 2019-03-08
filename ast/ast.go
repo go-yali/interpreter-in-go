@@ -114,11 +114,11 @@ func (rs *ReturnStatement) String() string {
 
 func (es *ExpressionStatement) String() string {
 	if es.Expression != nil {
-		return ex.Expression.String()
+		return es.Expression.String()
 	}
 	return ""
 }
 
-func (i *Identifier) String() {
+func (i *Identifier) String() string {
 	return i.Value
 }
