@@ -1,3 +1,5 @@
+/** A program in Monkey is a series of statements, which can be let statements, return statements, or expression statements **/
+
 package ast
 
 import "monkey/token"
@@ -15,7 +17,6 @@ type Statement interface {
 	statementNode()
 }
 
-// Expression interface only contains a dummy method, expressionNode()
 type Expression interface {
 	Node
 	expressionNode()
@@ -23,6 +24,27 @@ type Expression interface {
 
 type Program struct {
 	Statements []Statement
+}
+
+type LetStatement struct {
+	Token token.Token // the token.LET token
+	Name  *Identifier
+	Value Expression
+}
+
+type ReturnStatement struct {
+	Token       token.Token // the 'return token'
+	ReturnValue Expression
+}
+
+type ExpressionStatement struct {
+	Token      token.Token // the first token of the expression
+	Expression Expression
+}
+
+type Identifier struct {
+	Token token.Token // the token.IDENT token
+	Value string
 }
 
 func (p *Program) TokenLiteral() string {
@@ -33,19 +55,11 @@ func (p *Program) TokenLiteral() string {
 	}
 }
 
-type LetStatement struct {
-	Token token.Token // the token.LET token
-	Name  *Identifier
-	Value Expression
-}
-
-type Identifier struct {
-	Token token.Token // the token.IDENT token
-	Value string
-}
-
-func (ls *LetStatement) statementNode() {}
-func (i *Identifier) expressionNode()   {}
+// In order to add expression/let/return statements to the Statements slice of ast.Program, we satisfy the ast.Statement interface
+func (ls *LetStatement) statementNode()       {}
+func (rs *ReturnStatement) statementNode()    {}
+func (i *Identifier) expressionNode()         {}
+func (es *ExpressionStatement) statementNoe() {}
 
 func (ls *LetStatement) TokenLiteral() string {
 	return ls.Token.Literal
