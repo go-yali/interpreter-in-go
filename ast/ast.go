@@ -60,10 +60,10 @@ func (p *Program) TokenLiteral() string {
 }
 
 // In order to add expression/let/return statements to the Statements slice of ast.Program, we satisfy the ast.Statement interface
-func (ls *LetStatement) statementNode()       {}
-func (rs *ReturnStatement) statementNode()    {}
-func (i *Identifier) expressionNode()         {}
-func (es *ExpressionStatement) statementNoe() {}
+func (ls *LetStatement) statementNode()        {}
+func (rs *ReturnStatement) statementNode()     {}
+func (i *Identifier) expressionNode()          {}
+func (es *ExpressionStatement) statementNode() {}
 
 func (ls *LetStatement) TokenLiteral() string {
 	return ls.Token.Literal

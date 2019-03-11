@@ -16,7 +16,19 @@ type Parser struct {
 	peekToken token.Token
 
 	errors []string
+
+	// allows us to check if the appropriate map has a parsing function associated with curToken.Type
+	prefixParseFns map[token.TokenType]prefixParseFn
+	infixParseFns  map[token.TokenType]infixParseFn
 }
+
+type (
+	// prefixParseFn gets called when we encounter the associated token type in prefix position
+	prefixParseFn func() ast.Expression
+
+	// infixParseFn gets called when we encounter the token type in infix position
+	infixParseFn func(ast.Expression) ast.Expression // takes the 'left side' of the infix operator
+)
 
 func New(l *lexer.Lexer) *Parser {
 	p := &Parser{
@@ -125,6 +137,15 @@ func (p *Parser) expectPeek(t token.TokenType) bool {
 		p.peekError(t)
 		return false
 	}
+}
+
+// helper methods that add entries to the prefixParseFns & infixParseFns maps
+func (p *Parser) registerPrefix(tokenType token.TokenType, fn prefixParseFn) {
+	p.prefixParseFns[tokenType] = fn
+}
+
+func (p *Parser) registerInfix(tokenType token.TokenType, fn infixParseFn) {
+	p.infixParseFns[tokenType] = fn
 }
 
 func (p *Parser) Errors() []string {
