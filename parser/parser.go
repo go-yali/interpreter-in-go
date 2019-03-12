@@ -52,10 +52,12 @@ func New(l *lexer.Lexer) *Parser {
 	// Initialize the prefixParseFns map on Parser and register a parsing function
 	p.prefixParseFns = make(map[token.TokenType]prefixParseFn)
 
-	// If we encounter a token of type: token.IDENT,
+	// If, for eg, we encounter a token of type: token.IDENT,
 	// the parsing function to call is parseIdentifier
 	p.registerPrefix(token.IDENT, p.parseIdentifier)
 	p.registerPrefix(token.INT, p.parseIntegerLiteral)
+	p.registerPrefix(token.BANG, p.parsePrefixExpression)
+	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
 
 	// Read two tokents, so curToken and peekToken are both set
 	p.nextToken()
@@ -186,6 +188,27 @@ func (p *Parser) parseIntegerLiteral() ast.Expression {
 
 	lit.Value = value
 	return lit
+}
+
+// Builds an AST node, like usual
+// BUT: It advances our tokens by calling p.nextToken()!
+// (Because We're working with prefix and expression)
+func (p *Parser) parsePrefixExpression() ast.Expression {
+	expression := &ast.PrefixExpression{
+		Token:    p.curToken,
+		Operator: p.curToken.Literal,
+	}
+	p.nextToken()
+
+	// Now, when parseExpression is called, tokens have been advanced
+	// in the case of `-5`, below: p.curToken.Type is token.INT.
+	// parseExpression then checks the registered prefix parsing functions,
+	// finds parseIntegerLiteral,
+	// which builds an *ast.IntegerLiteral node and returns it.
+	// parseExpression returns this newly constructed node and parsePrefixExpression uses it to fill the Right field of *ast.PrefixExpression.
+
+	expression.Right = p.parseExpression(PREFIX)
+	return expression
 }
 
 //// HELPER METHODS ////
