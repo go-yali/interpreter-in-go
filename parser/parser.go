@@ -7,6 +7,14 @@ import (
 	"monkey/token"
 )
 
+type (
+	// prefixParseFn gets called when we encounter the associated token type in prefix position
+	prefixParseFn func() ast.Expression
+
+	// infixParseFn gets called when we encounter the token type in infix position
+	infixParseFn func(ast.Expression) ast.Expression // takes the 'left side' of the infix operator
+)
+
 type Parser struct {
 	l *lexer.Lexer // pointer to an instance of the lexer
 
@@ -22,12 +30,16 @@ type Parser struct {
 	infixParseFns  map[token.TokenType]infixParseFn
 }
 
-type (
-	// prefixParseFn gets called when we encounter the associated token type in prefix position
-	prefixParseFn func() ast.Expression
-
-	// infixParseFn gets called when we encounter the token type in infix position
-	infixParseFn func(ast.Expression) ast.Expression // takes the 'left side' of the infix operator
+// User iota to increment these constants starting at 1 for LOWEST and 7 for CALL
+const (
+	_ int = iota
+	LOWEST
+	EQUALS      // ==
+	LESSGREATER // < or >
+	SUM         // +
+	PRODUCT     // *
+	PREFIX      // -X or !X
+	CALL        // myFunction(X)
 )
 
 func New(l *lexer.Lexer) *Parser {
@@ -35,6 +47,13 @@ func New(l *lexer.Lexer) *Parser {
 		l:      l,
 		errors: []string{},
 	}
+
+	// Initialize the prefixParseFns map on Parser and register a parsing function
+	p.prefixParseFns = make(map[token.TokenType]prefixParseFn)
+
+	// If we encounter a token of type: token.IDENT,
+	// the parsing function to call is parseIdentifier
+	p.registerPrefix(token.IDENT, p.parseIdentifier)
 
 	// Read two tokents, so curToken and peekToken are both set
 	p.nextToken()
@@ -72,6 +91,7 @@ func (p *Parser) ParseProgram() *ast.Program {
 	return program
 }
 
+// Main idea of Pratt parser: association of parsing functions with token types. EG: When I encounter LET token type, appropriate parseLetStatement() function is called
 func (p *Parser) parseStatement() ast.Statement {
 	switch p.curToken.Type {
 	case token.LET:
@@ -79,8 +99,26 @@ func (p *Parser) parseStatement() ast.Statement {
 	case token.RETURN:
 		return p.parseReturnStatement()
 	default:
+		return p.parseExpressionStatement()
+	}
+}
+
+// All parsing functions, this one, prefixParseFun, and infixParseFn - don't advance tokens.
+func (p *Parser) parseIdentifier() ast.Expression {
+	return &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+}
+
+func (p *Parser) parseExpression(precendence int) ast.Expression {
+
+	// Do we have a parsing function associated with p.curToken.Type in the prefix position?
+	prefix := p.prefixParseFns[p.curToken.Type]
+
+	if prefix == nil {
 		return nil
 	}
+
+	leftExp := prefix()
+	return leftExp
 }
 
 // parseLetStatement constructs an *ast.LetStatement node with the token its currently sitting on (a LET token), then advances the tokens while making assertions about the next token with calls to expectPeek
@@ -119,6 +157,29 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 	return stmt
 }
 
+// parseExpressionStatement constructs an AST node, and only advance curToken if the next token is a semicolon
+func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
+	stmt := &ast.ExpressionStatement{Token: p.curToken}
+
+	stmt.Expression = p.parseExpression(LOWEST)
+
+	if p.peekTokenIs(token.SEMICOLON) {
+		p.nextToken()
+	}
+	return stmt
+}
+
+//// HELPER METHODS ////
+
+// helper methods that add entries to the prefixParseFns & infixParseFns maps
+func (p *Parser) registerPrefix(tokenType token.TokenType, fn prefixParseFn) {
+	p.prefixParseFns[tokenType] = fn
+}
+
+func (p *Parser) registerInfix(tokenType token.TokenType, fn infixParseFn) {
+	p.infixParseFns[tokenType] = fn
+}
+
 func (p *Parser) curTokenIs(t token.TokenType) bool {
 	return p.curToken.Type == t
 }
@@ -137,15 +198,6 @@ func (p *Parser) expectPeek(t token.TokenType) bool {
 		p.peekError(t)
 		return false
 	}
-}
-
-// helper methods that add entries to the prefixParseFns & infixParseFns maps
-func (p *Parser) registerPrefix(tokenType token.TokenType, fn prefixParseFn) {
-	p.prefixParseFns[tokenType] = fn
-}
-
-func (p *Parser) registerInfix(tokenType token.TokenType, fn infixParseFn) {
-	p.infixParseFns[tokenType] = fn
 }
 
 func (p *Parser) Errors() []string {
