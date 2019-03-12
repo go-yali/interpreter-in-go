@@ -86,13 +86,6 @@ func New(l *lexer.Lexer) *Parser {
 	return p
 }
 
-// To get the next tokens
-// Advances both curToken and peekToken
-func (p *Parser) nextToken() {
-	p.curToken = p.peekToken
-	p.peekToken = p.l.NextToken()
-}
-
 func (p *Parser) ParseProgram() *ast.Program {
 
 	//construct the root node of the AST
@@ -166,6 +159,7 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 
 // parseExpressionStatement constructs an AST node, and only advance curToken if the next token is a semicolon
 func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
+	// defer untrace(trace("parseExperessionStatement"))
 	stmt := &ast.ExpressionStatement{Token: p.curToken}
 
 	stmt.Expression = p.parseExpression(LOWEST)
@@ -183,6 +177,7 @@ func (p *Parser) parseIdentifier() ast.Expression {
 
 func (p *Parser) parseExpression(precedence int) ast.Expression {
 
+	// defer untrace(trace("parseExpression"))
 	// Check: Do we have a parsing function associated with p.curToken.Type in the prefix position?
 	prefix := p.prefixParseFns[p.curToken.Type]
 
@@ -194,18 +189,24 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 	leftExp := prefix()
 
 	for !p.peekTokenIs(token.SEMICOLON) && precedence < p.peekPrecedence() {
-		infix := p.infixParseFns[p.peekToken.Type]
+
+		infix := p.infixParseFns[p.peekToken.Type] // parseInfixExpression
+
 		if infix == nil {
 			return leftExp
 		}
+
 		p.nextToken()
-		leftExp = infix(leftExp)
+
+		leftExp = infix(leftExp) // parseInfixExpression(leftExp)
 	}
 	return leftExp
 }
 
 // parses the literal "5" from input into the numeric expression
 func (p *Parser) parseIntegerLiteral() ast.Expression {
+	// defer untrace(trace("parseIntegerLiteral"))
+
 	lit := &ast.IntegerLiteral{Token: p.curToken}
 
 	value, err := strconv.ParseInt(p.curToken.Literal, 0, 64)
@@ -220,10 +221,16 @@ func (p *Parser) parseIntegerLiteral() ast.Expression {
 	return lit
 }
 
+func (p *Parser) parseBoolean() ast.Expression {
+	return &ast.Boolean{Token: p.curToken, Value: p.curTokenIs(token.TRUE)}
+}
+
 // Builds an AST node, like usual
 // BUT: It advances our tokens by calling p.nextToken()!
 // (Because We're working with prefix and expression)
 func (p *Parser) parsePrefixExpression() ast.Expression {
+	// defer untrace(trace("parsePrefixExpression"))
+
 	expression := &ast.PrefixExpression{
 		Token:    p.curToken,
 		Operator: p.curToken.Literal,
@@ -245,6 +252,7 @@ func (p *Parser) parsePrefixExpression() ast.Expression {
 // parseInfixExpression:
 // 1. Takes argument left expression
 func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
+	// defer untrace(trace("parseInfixExpression"))
 
 	// 2. constructs an InfixExpression node
 	expression := &ast.InfixExpression{
@@ -262,6 +270,13 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 }
 
 //// HELPER METHODS ////
+
+// To get the next tokens
+// Advances both curToken and peekToken
+func (p *Parser) nextToken() {
+	p.curToken = p.peekToken
+	p.peekToken = p.l.NextToken()
+}
 
 // helper methods that add entries to the prefixParseFns & infixParseFns maps
 func (p *Parser) registerPrefix(tokenType token.TokenType, fn prefixParseFn) {
