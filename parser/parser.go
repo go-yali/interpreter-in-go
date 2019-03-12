@@ -55,6 +55,7 @@ func New(l *lexer.Lexer) *Parser {
 	// If we encounter a token of type: token.IDENT,
 	// the parsing function to call is parseIdentifier
 	p.registerPrefix(token.IDENT, p.parseIdentifier)
+	p.registerPrefix(token.INT, p.parseIntegerLiteral)
 
 	// Read two tokents, so curToken and peekToken are both set
 	p.nextToken()
@@ -123,7 +124,7 @@ func (p *Parser) parseExpression(precendence int) ast.Expression {
 }
 
 // parses the literal "5" from input into the numeric expression
-func (p *Parser) parseInegerLiteral() ast.Expression {
+func (p *Parser) parseIntegerLiteral() ast.Expression {
 	lit := &ast.IntegerLiteral{Token: p.curToken}
 
 	value, err := strconv.ParseInt(p.curToken.Literal, 0, 64)
