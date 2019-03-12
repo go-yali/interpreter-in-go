@@ -75,6 +75,18 @@ type Boolean struct {
 	Value bool
 }
 
+type IfExpression struct {
+	Token       token.Token // the 'if' token
+	Condition   Expression
+	Consequence *BlockStatement
+	Alternative *BlockStatement
+}
+
+type BlockStatement struct {
+	Token      token.Token // the { token
+	Statements []Statement
+}
+
 func (p *Program) TokenLiteral() string {
 	if len(p.Statements) > 0 {
 		return p.Statements[0].TokenLiteral()
@@ -86,12 +98,16 @@ func (p *Program) TokenLiteral() string {
 // In order to add expression/let/return statements to the Statements slice of ast.Program, we satisfy the ast.Statement interface
 func (ls *LetStatement) statementNode()        {}
 func (rs *ReturnStatement) statementNode()     {}
-func (i *Identifier) expressionNode()          {}
 func (es *ExpressionStatement) statementNode() {}
-func (il *IntegerLiteral) expressionNode()     {}
-func (pe *PrefixExpression) expressionNode()   {}
-func (ie *InfixExpression) expressionNode()    {}
-func (b *Boolean) expressionNode()             {}
+func (bs *BlockStatement) statementNode()      {}
+
+// To satisfy the ast.Expression interface...
+func (i *Identifier) expressionNode()        {}
+func (il *IntegerLiteral) expressionNode()   {}
+func (pe *PrefixExpression) expressionNode() {}
+func (ie *InfixExpression) expressionNode()  {}
+func (b *Boolean) expressionNode()           {}
+func (ie *IfExpression) expressionNode()     {}
 
 func (ls *LetStatement) TokenLiteral() string        { return ls.Token.Literal }
 func (i *Identifier) TokenLiteral() string           { return i.Token.Literal }
@@ -101,6 +117,8 @@ func (il *IntegerLiteral) TokenLiteral() string      { return il.Token.Literal }
 func (pe *PrefixExpression) TokenLiteral() string    { return pe.Token.Literal }
 func (ie *InfixExpression) TokenLiteral() string     { return ie.Token.Literal }
 func (b *Boolean) TokenLiteral() string              { return b.Token.Literal }
+func (ie *IfExpression) TokenLiteral() string        { return ie.Token.Literal }
+func (bs *BlockStatement) TokenLiteral() string      { return bs.Token.Literal }
 
 // Programs String method creates a buffer and writes the return value of each statement's String() method to it
 func (p *Program) String() string {
@@ -170,4 +188,26 @@ func (ie *InfixExpression) String() string {
 
 func (b *Boolean) String() string {
 	return b.Token.Literal
+}
+
+func (ie *IfExpression) String() string {
+	var out bytes.Buffer
+	out.WriteString("if")
+	out.WriteString(ie.Condition.String())
+	out.WriteString(" ")
+	out.WriteString(ie.Consequence.String())
+
+	if ie.Alternative != nil {
+		out.WriteString("else")
+		out.WriteString(ie.Alternative.String())
+	}
+	return out.String()
+}
+
+func (bs *BlockStatement) String() string {
+	var out bytes.Buffer
+	for _, s := range bs.Statements {
+		out.WriteString(s.String())
+	}
+	return out.String()
 }
