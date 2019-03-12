@@ -57,6 +57,12 @@ type IntegerLiteral struct {
 	Value int64
 }
 
+type PrefixExpression struct {
+	Token    token.Token // a prefix token (! or -)
+	Operator string
+	Right    Expression
+}
+
 func (p *Program) TokenLiteral() string {
 	if len(p.Statements) > 0 {
 		return p.Statements[0].TokenLiteral()
@@ -71,14 +77,16 @@ func (rs *ReturnStatement) statementNode()     {}
 func (i *Identifier) expressionNode()          {}
 func (es *ExpressionStatement) statementNode() {}
 func (il *IntegerLiteral) expressionNode()     {}
+func (pe *PrefixExpression) expressionNode()   {}
 
 func (ls *LetStatement) TokenLiteral() string        { return ls.Token.Literal }
 func (i *Identifier) TokenLiteral() string           { return i.Token.Literal }
 func (rs *ReturnStatement) TokenLiteral() string     { return rs.Token.Literal }
 func (es *ExpressionStatement) TokenLiteral() string { return es.Token.Literal }
 func (il *IntegerLiteral) TokenLiteral() string      { return il.Token.Literal }
+func (pe *PrefixExpression) TokenLiteral() string    { return pe.Token.Literal }
 
-// String method of Program only creates a buffer and writes the return value of each statement's String() method to it
+// Programs String method creates a buffer and writes the return value of each statement's String() method to it
 func (p *Program) String() string {
 	var out bytes.Buffer
 	for _, s := range p.Statements {
@@ -121,3 +129,15 @@ func (i *Identifier) String() string {
 }
 
 func (il *IntegerLiteral) String() string { return il.Token.Literal }
+
+func (pe *PrefixExpression) String() string {
+	var out bytes.Buffer
+
+	// Deliberately add paranthesses around the operator and Right,
+	// allowing us to see which operand belongs to which operator
+	out.WriteString("(")
+	out.WriteString(pe.Operator)
+	out.WriteString(pe.Right.String())
+	out.WriteString(")")
+	return out.String()
+}

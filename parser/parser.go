@@ -105,40 +105,6 @@ func (p *Parser) parseStatement() ast.Statement {
 	}
 }
 
-// All parsing functions, this one, prefixParseFun, and infixParseFn - don't advance tokens.
-func (p *Parser) parseIdentifier() ast.Expression {
-	return &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
-}
-
-func (p *Parser) parseExpression(precendence int) ast.Expression {
-
-	// Do we have a parsing function associated with p.curToken.Type in the prefix position?
-	prefix := p.prefixParseFns[p.curToken.Type]
-
-	if prefix == nil {
-		return nil
-	}
-
-	leftExp := prefix()
-	return leftExp
-}
-
-// parses the literal "5" from input into the numeric expression
-func (p *Parser) parseIntegerLiteral() ast.Expression {
-	lit := &ast.IntegerLiteral{Token: p.curToken}
-
-	value, err := strconv.ParseInt(p.curToken.Literal, 0, 64)
-
-	if err != nil {
-		msg := fmt.Sprintf("could not parse %q as integer", p.curToken.Literal)
-		p.errors = append(p.errors, msg)
-		return nil
-	}
-
-	lit.Value = value
-	return lit
-}
-
 // parseLetStatement constructs an *ast.LetStatement node with the token its currently sitting on (a LET token), then advances the tokens while making assertions about the next token with calls to expectPeek
 func (p *Parser) parseLetStatement() *ast.LetStatement {
 	stmt := &ast.LetStatement{Token: p.curToken}
@@ -187,6 +153,41 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 	return stmt
 }
 
+// All parsing functions, this one, prefixParseFun, and infixParseFn - don't advance tokens.
+func (p *Parser) parseIdentifier() ast.Expression {
+	return &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+}
+
+func (p *Parser) parseExpression(precendence int) ast.Expression {
+
+	// Do we have a parsing function associated with p.curToken.Type in the prefix position?
+	prefix := p.prefixParseFns[p.curToken.Type]
+
+	if prefix == nil {
+		p.noPrefixParseFnError(p.curToken.Type)
+		return nil
+	}
+
+	leftExp := prefix()
+	return leftExp
+}
+
+// parses the literal "5" from input into the numeric expression
+func (p *Parser) parseIntegerLiteral() ast.Expression {
+	lit := &ast.IntegerLiteral{Token: p.curToken}
+
+	value, err := strconv.ParseInt(p.curToken.Literal, 0, 64)
+
+	if err != nil {
+		msg := fmt.Sprintf("could not parse %q as integer", p.curToken.Literal)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+
+	lit.Value = value
+	return lit
+}
+
 //// HELPER METHODS ////
 
 // helper methods that add entries to the prefixParseFns & infixParseFns maps
@@ -218,11 +219,16 @@ func (p *Parser) expectPeek(t token.TokenType) bool {
 	}
 }
 
+func (p *Parser) peekError(t token.TokenType) {
+	msg := fmt.Sprintf("expected next token to be %s, got %s instead", t, p.peekToken.Type)
+	p.errors = append(p.errors, msg)
+}
+
 func (p *Parser) Errors() []string {
 	return p.errors
 }
 
-func (p *Parser) peekError(t token.TokenType) {
-	msg := fmt.Sprintf("expected next token to be %s, got %s instead", t, p.peekToken.Type)
+func (p *Parser) noPrefixParseFnError(t token.TokenType) {
+	msg := fmt.Sprintf("no prefix parse functions for %s found", t)
 	p.errors = append(p.errors, msg)
 }
