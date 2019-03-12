@@ -15,7 +15,6 @@ type Node interface {
 	String() string
 }
 
-// Statement interface only contains a dummy method, statementNode()
 type Statement interface {
 	Node
 	statementNode()
@@ -30,13 +29,14 @@ type Program struct {
 	Statements []Statement
 }
 
+// LetStatement implements Statement interface
 type LetStatement struct {
 	Token token.Token // the token.LET token
 	Name  *Identifier
 	Value Expression
 }
 
-type ReturnStatement struct {
+type ReturnStatement struct { // imple
 	Token       token.Token // the 'return token'
 	ReturnValue Expression
 }
@@ -49,6 +49,12 @@ type ExpressionStatement struct {
 type Identifier struct {
 	Token token.Token // the token.IDENT token
 	Value string
+}
+
+// IntegerLiteral implements the Expression interface
+type IntegerLiteral struct {
+	Token token.Token
+	Value int64
 }
 
 func (p *Program) TokenLiteral() string {
@@ -64,22 +70,13 @@ func (ls *LetStatement) statementNode()        {}
 func (rs *ReturnStatement) statementNode()     {}
 func (i *Identifier) expressionNode()          {}
 func (es *ExpressionStatement) statementNode() {}
+func (il *IntegerLiteral) expressionNode()     {}
 
-func (ls *LetStatement) TokenLiteral() string {
-	return ls.Token.Literal
-}
-
-func (i *Identifier) TokenLiteral() string {
-	return i.Token.Literal
-}
-
-func (rs *ReturnStatement) TokenLiteral() string {
-	return rs.Token.Literal
-}
-
-func (es *ExpressionStatement) TokenLiteral() string {
-	return es.Token.Literal
-}
+func (ls *LetStatement) TokenLiteral() string        { return ls.Token.Literal }
+func (i *Identifier) TokenLiteral() string           { return i.Token.Literal }
+func (rs *ReturnStatement) TokenLiteral() string     { return rs.Token.Literal }
+func (es *ExpressionStatement) TokenLiteral() string { return es.Token.Literal }
+func (il *IntegerLiteral) TokenLiteral() string      { return il.Token.Literal }
 
 // String method of Program only creates a buffer and writes the return value of each statement's String() method to it
 func (p *Program) String() string {
@@ -122,3 +119,5 @@ func (es *ExpressionStatement) String() string {
 func (i *Identifier) String() string {
 	return i.Value
 }
+
+func (il *IntegerLiteral) String() string { return il.Token.Literal }
