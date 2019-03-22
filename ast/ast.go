@@ -5,6 +5,7 @@ package ast
 import (
 	"bytes"
 	"monkey/token"
+	"strings"
 )
 
 // Each of our AST Nodes (ie each expression, statement) all must implement the Node interface, aka it must provide a TokenLiteral() that returns the literal value of the token it's associated with. TokenLiteral will only be used for debugging and testing
@@ -83,8 +84,14 @@ type IfExpression struct {
 }
 
 type BlockStatement struct {
-	Token      token.Token // the { token
+	Token      token.Token // the '{' token
 	Statements []Statement
+}
+
+type FunctionLiteral struct {
+	Token      token.Token // The 'fn' token
+	Parameters []*Identifier
+	Body       *BlockStatement
 }
 
 func (p *Program) TokenLiteral() string {
@@ -108,6 +115,7 @@ func (pe *PrefixExpression) expressionNode() {}
 func (ie *InfixExpression) expressionNode()  {}
 func (b *Boolean) expressionNode()           {}
 func (ie *IfExpression) expressionNode()     {}
+func (fl *FunctionLiteral) expressionNode()  {}
 
 func (ls *LetStatement) TokenLiteral() string        { return ls.Token.Literal }
 func (i *Identifier) TokenLiteral() string           { return i.Token.Literal }
@@ -119,6 +127,7 @@ func (ie *InfixExpression) TokenLiteral() string     { return ie.Token.Literal }
 func (b *Boolean) TokenLiteral() string              { return b.Token.Literal }
 func (ie *IfExpression) TokenLiteral() string        { return ie.Token.Literal }
 func (bs *BlockStatement) TokenLiteral() string      { return bs.Token.Literal }
+func (fl *FunctionLiteral) TokenLiteral() string     { return fl.Token.Literal }
 
 // Programs String method creates a buffer and writes the return value of each statement's String() method to it
 func (p *Program) String() string {
@@ -209,5 +218,22 @@ func (bs *BlockStatement) String() string {
 	for _, s := range bs.Statements {
 		out.WriteString(s.String())
 	}
+	return out.String()
+}
+
+func (fl *FunctionLiteral) String() string {
+	var out bytes.Buffer
+
+	params := []string{}
+	for _, p := range fl.Parameters {
+		params = append(params, p.String())
+	}
+
+	out.WriteString(fl.TokenLiteral())
+	out.WriteString("(")
+	out.WriteString(strings.Join(params, ", "))
+	out.WriteString(") ")
+	out.WriteString(fl.Body.String())
+
 	return out.String()
 }
