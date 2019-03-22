@@ -94,6 +94,12 @@ type FunctionLiteral struct {
 	Body       *BlockStatement
 }
 
+type CallExpression struct {
+	Token     token.Token // The '(' token
+	Function  Expression  // Identifier or FunctionLiteral .. What if a prefix expression is given???
+	Arguments []Expression
+}
+
 func (p *Program) TokenLiteral() string {
 	if len(p.Statements) > 0 {
 		return p.Statements[0].TokenLiteral()
@@ -116,6 +122,7 @@ func (ie *InfixExpression) expressionNode()  {}
 func (b *Boolean) expressionNode()           {}
 func (ie *IfExpression) expressionNode()     {}
 func (fl *FunctionLiteral) expressionNode()  {}
+func (ce *CallExpression) expressionNode()   {}
 
 func (ls *LetStatement) TokenLiteral() string        { return ls.Token.Literal }
 func (i *Identifier) TokenLiteral() string           { return i.Token.Literal }
@@ -128,6 +135,7 @@ func (b *Boolean) TokenLiteral() string              { return b.Token.Literal }
 func (ie *IfExpression) TokenLiteral() string        { return ie.Token.Literal }
 func (bs *BlockStatement) TokenLiteral() string      { return bs.Token.Literal }
 func (fl *FunctionLiteral) TokenLiteral() string     { return fl.Token.Literal }
+func (ce *CallExpression) TokenLiteral() string      { return ce.Token.Literal }
 
 // Programs String method creates a buffer and writes the return value of each statement's String() method to it
 func (p *Program) String() string {
@@ -234,6 +242,21 @@ func (fl *FunctionLiteral) String() string {
 	out.WriteString(strings.Join(params, ", "))
 	out.WriteString(") ")
 	out.WriteString(fl.Body.String())
+
+	return out.String()
+}
+
+func (ce *CallExpression) String() string {
+	var out bytes.Buffer
+	args := []string{}
+
+	for _, a := range ce.Arguments {
+		args = append(args, a.String())
+	}
+	out.WriteString(ce.Function.String())
+	out.WriteString("(")
+	out.WriteString(strings.Join(args, ", "))
+	out.WriteString(")")
 
 	return out.String()
 }
