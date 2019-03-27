@@ -7,6 +7,7 @@ import (
 	"testing"
 )
 
+/// INTEGER ///
 func TestEvalIntegerExpression(t *testing.T) {
 	tests := []struct {
 		input    string
@@ -22,6 +23,7 @@ func TestEvalIntegerExpression(t *testing.T) {
 	}
 }
 
+/// BOOLEAN ///
 func TestEvalBooleanExpression(t *testing.T) {
 	tests := []struct {
 		input    string
@@ -36,6 +38,27 @@ func TestEvalBooleanExpression(t *testing.T) {
 	}
 }
 
+/// BANG ///
+func TestBangOperator(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected bool
+	}{
+		{"!true", false},
+		{"!false", true},
+		{"!5", false},
+		{"!!true", true},
+		{"!!false", false},
+		{"!!5", true},
+	}
+
+	for _, tt := range tests {
+		evaluated := testEval(tt.input)
+		testBooleanObject(t, evaluated, tt.expected)
+	}
+}
+
+/// HELPERS ///
 func testEval(input string) object.Object {
 	l := lexer.New(input)
 	p := parser.New(l)
