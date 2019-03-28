@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-/// INTEGER ///
+/// INTEGER EVAL ///
 func TestEvalIntegerExpression(t *testing.T) {
 	tests := []struct {
 		input    string
@@ -15,6 +15,8 @@ func TestEvalIntegerExpression(t *testing.T) {
 	}{
 		{"5", 5},
 		{"10", 10},
+		{"-5", -5},
+		{"-10", -10},
 	}
 
 	for _, tt := range tests {
@@ -23,7 +25,7 @@ func TestEvalIntegerExpression(t *testing.T) {
 	}
 }
 
-/// BOOLEAN ///
+/// BOOLEAN EVAL ///
 func TestEvalBooleanExpression(t *testing.T) {
 	tests := []struct {
 		input    string
