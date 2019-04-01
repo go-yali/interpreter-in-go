@@ -66,6 +66,16 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return evalInfixExpression(node.Operator, left, right)
 	case *ast.Identifier:
 		return evalIdentifier(node, env)
+	case *ast.CallExpression:
+		function := Eval(node.Function, env)
+		if isError(function) {
+			return function
+		}
+		args := evalExpressions(node.Arguments, env)
+		if len(args) == 1 && isError(args[0]) {
+			return args[0]
+		}
+		return applyFunction(function, args)
 	}
 
 	return nil
@@ -207,6 +217,29 @@ func evalBlockStatement(block *ast.BlockStatement, env *object.Environment) obje
 	return result
 }
 
+func evalIdentifier(node *ast.Identifier, env *object.Environment) object.Object {
+	val, ok := env.Get(node.Value)
+	if !ok {
+		return newError("identifier not found: " + node.Value)
+	}
+	return val
+}
+
+//iterate over list of ast.Expressions and evaluate them in the context of the current env
+// if we encounter an error, stop the evaluation and return the error
+// Here it is also decided to evaluate the arguments from left-to-right
+func evalExpressions(exps []ast.Expression, env *object.Environment) []object.Object {
+	var result []object.Object
+	for _, e := range exps {
+		evaluated := Eval(e, env)
+		if isError(evaluated) {
+			return []object.Object{evaluated}
+		}
+		result = append(result, evaluated)
+	}
+	return result
+}
+
 func isTruthy(obj object.Object) bool {
 	switch obj {
 	case NULL:
@@ -234,10 +267,38 @@ func isError(obj object.Object) bool {
 	return false
 }
 
-func evalIdentifier(node *ast.Identifier, env *object.Environment) object.Object {
-	val, ok := env.Get(node.Value)
+// check that we really have an *object.Function at hand
+// also convert the fn parameter to an *object.Function reference in order to get access to the fn's .Env and .Body fields (which object.Object doesn't have)
+func applyFunction(fn object.Object, args []object.Object) object.Object {
+	function, ok := fn.(*object.Function)
 	if !ok {
-		return newError("identifier not found: " + node.Value)
+		return newError("not a function: %s", fn.Type())
 	}
-	return val
+
+	extendedEnv := extendFunctionEnv(function, args)
+
+	// The newly enclosed/inner and updated environment is then the env in which the fn's body is evaluated.
+	evaluated := Eval(function.Body, extendedEnv)
+
+	// this is unwrapped if it's an *object.ReturnValue
+	return unwrapReturnValue(evaluated)
+}
+
+// creates a new *object.Environment that's enclosed by the fn's environment.
+// In new, inner env, the fn's environment (the outer one), binds the args of the fn call to the fn's parameter names
+func extendFunctionEnv(fn *object.Function, args []object.Object) *object.Environment {
+	env := object.NewEnclosedEnvironment(fn.Env)
+	for paramIdx, param := range fn.Parameters {
+		env.Set(param.Value, args[paramIdx])
+	}
+	return env
+}
+
+// otherwise a return stmt would bubble up through several function and stop the evaluation in all of them
+// we only want to stop the eval of the last called function's body
+func unwrapReturnValue(obj object.Object) object.Object {
+	if returnValue, ok := obj.(*object.ReturnValue); ok {
+		return returnValue.Value
+	}
+	return obj
 }
