@@ -100,6 +100,11 @@ type CallExpression struct {
 	Arguments []Expression
 }
 
+type StringLiteral struct {
+	Token token.Token
+	Value string
+}
+
 func (p *Program) TokenLiteral() string {
 	if len(p.Statements) > 0 {
 		return p.Statements[0].TokenLiteral()
@@ -123,6 +128,7 @@ func (b *Boolean) expressionNode()           {}
 func (ie *IfExpression) expressionNode()     {}
 func (fl *FunctionLiteral) expressionNode()  {}
 func (ce *CallExpression) expressionNode()   {}
+func (sl *StringLiteral) expressionNode()    {}
 
 func (ls *LetStatement) TokenLiteral() string        { return ls.Token.Literal }
 func (i *Identifier) TokenLiteral() string           { return i.Token.Literal }
@@ -136,6 +142,7 @@ func (ie *IfExpression) TokenLiteral() string        { return ie.Token.Literal }
 func (bs *BlockStatement) TokenLiteral() string      { return bs.Token.Literal }
 func (fl *FunctionLiteral) TokenLiteral() string     { return fl.Token.Literal }
 func (ce *CallExpression) TokenLiteral() string      { return ce.Token.Literal }
+func (sl *StringLiteral) TokenLiteral() string       { return sl.Token.Literal }
 
 // Programs String method creates a buffer and writes the return value of each statement's String() method to it
 func (p *Program) String() string {
@@ -260,3 +267,5 @@ func (ce *CallExpression) String() string {
 
 	return out.String()
 }
+
+func (sl *StringLiteral) String() string { return sl.Token.Literal }
