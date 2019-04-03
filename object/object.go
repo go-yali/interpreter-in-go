@@ -18,6 +18,7 @@ const (
 	FUNCTION_OBJ     = "FUNCTION"
 	STRING_OBJ       = "STRING"
 	BUILTIN_OBJ      = "BUILTIN"
+	ARRAY_OBJ        = "ARRAY"
 )
 
 type Object interface {
@@ -57,6 +58,10 @@ type Builtin struct {
 	Fn BuiltinFunction
 }
 
+type Array struct {
+	Elements []Object
+}
+
 type BuiltinFunction func(args ...Object) Object
 
 func (i *Integer) Type() ObjectType      { return INTEGER_OBJ }
@@ -67,6 +72,7 @@ func (e *Error) Type() ObjectType        { return ERROR_OBJ }
 func (f *Function) Type() ObjectType     { return FUNCTION_OBJ }
 func (s *String) Type() ObjectType       { return STRING_OBJ }
 func (b *Builtin) Type() ObjectType      { return BUILTIN_OBJ }
+func (ao *Array) Type() ObjectType       { return ARRAY_OBJ }
 
 func (i *Integer) Inspect() string      { return fmt.Sprintf("%d", i.Value) }
 func (b *Boolean) Inspect() string      { return fmt.Sprintf("%t", b.Value) }
@@ -89,3 +95,14 @@ func (f *Function) Inspect() string {
 }
 func (s *String) Inspect() string  { return s.Value }
 func (b *Builtin) Inspect() string { return "builtin function" }
+func (ao *Array) Inspect() string {
+	var out bytes.Buffer
+	elements := []string{}
+	for _, e := range ao.Elements {
+		elements = append(elements, e.Inspect())
+	}
+	out.WriteString("[")
+	out.WriteString(strings.Join(elements, ", "))
+	out.WriteString("]")
+	return out.String()
+}
