@@ -222,11 +222,13 @@ func evalBlockStatement(block *ast.BlockStatement, env *object.Environment) obje
 }
 
 func evalIdentifier(node *ast.Identifier, env *object.Environment) object.Object {
-	val, ok := env.Get(node.Value)
-	if !ok {
-		return newError("identifier not found: " + node.Value)
+	if val, ok := env.Get(node.Value); ok {
+		return val
 	}
-	return val
+	if builtin, ok := builtins[node.Value]; ok {
+		return builtin
+	}
+	return newError("identifier not found: " + node.Value)
 }
 
 //iterate over list of ast.Expressions and evaluate them in the context of the current env
@@ -284,18 +286,20 @@ func isError(obj object.Object) bool {
 // check that we really have an *object.Function at hand
 // also convert the fn parameter to an *object.Function reference in order to get access to the fn's .Env and .Body fields (which object.Object doesn't have)
 func applyFunction(fn object.Object, args []object.Object) object.Object {
-	function, ok := fn.(*object.Function)
-	if !ok {
+	switch fn := fn.(type) {
+	case *object.Function:
+		extendedEnv := extendFunctionEnv(fn, args)
+
+		// The newly enclosed/inner and updated environment is then the env in which the fn's body is evaluated.
+		evaluated := Eval(fn.Body, extendedEnv)
+
+		// this is unwrapped if it's an *object.ReturnValue
+		return unwrapReturnValue(evaluated)
+	case *object.Builtin:
+		return fn.Fn(args...)
+	default:
 		return newError("not a function: %s", fn.Type())
 	}
-
-	extendedEnv := extendFunctionEnv(function, args)
-
-	// The newly enclosed/inner and updated environment is then the env in which the fn's body is evaluated.
-	evaluated := Eval(function.Body, extendedEnv)
-
-	// this is unwrapped if it's an *object.ReturnValue
-	return unwrapReturnValue(evaluated)
 }
 
 // creates a new *object.Environment that's enclosed by the fn's environment.
