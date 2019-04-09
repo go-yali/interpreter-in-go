@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"monkey/ast"
 	"strings"
+	"hash/fnv"
 )
 
 type ObjectType string
@@ -63,6 +64,11 @@ type Array struct {
 }
 
 type BuiltinFunction func(args ...Object) Object
+ 
+type HashKey struct {
+	Type ObjectType // Type field effectively 'scopes' HashKeys to different object types
+	Value uint64 // Holds an integer, and thus we can easily compare a HashKey to another HashKey
+}
 
 func (i *Integer) Type() ObjectType      { return INTEGER_OBJ }
 func (b *Boolean) Type() ObjectType      { return BOOLEAN_OBJ }
@@ -105,4 +111,24 @@ func (ao *Array) Inspect() string {
 	out.WriteString(strings.Join(elements, ", "))
 	out.WriteString("]")
 	return out.String()
+}
+
+func (b *Boolean) HashKey() HashKey {
+	var value uint64
+	if b.Value {
+		value = 1
+	} else {
+		value = 0
+	}
+	return HashKey{Type: b.Type(), Value: value}
+}
+
+func (i *Integer) HashKey() HashKey {
+	return HashKey{Type: i.Type(), Value: uint64(i.Value)}
+}
+
+func (s *String) HashKey() HashKey {
+	h := fnv.New64a()
+	h.Write([]byte(s.Value))
+	return HashKey{Type: s.Type(), Value: h.Sum64()}
 }
