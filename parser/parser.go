@@ -81,6 +81,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.FUNCTION, p.parseFunctionLiteral)
 	p.registerPrefix(token.STRING, p.parseStringLiteral)
 	p.registerPrefix(token.LBRACKET, p.parseArrayLiteral)
+	p.registerPrefix(token.LBRACE, p.parseHashLiteral)
 
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
 	p.registerInfix(token.MINUS, p.parseInfixExpression)
@@ -395,33 +396,6 @@ func (p *Parser) parseCallExpression(function ast.Expression) ast.Expression {
 	return exp
 }
 
-// parseCallArguments parses the argument list
-// A more generic version of parseFunctionParameters
-// func (p *Parser) parseCallArguments() []ast.Expression {
-// 	args := []ast.Expression{}
-
-// 	if p.peekTokenIs(token.RPAREN) {
-// 		p.nextToken()
-// 		return args
-// 	}
-
-// 	p.nextToken()
-// 	args = append(args, p.parseExpression(LOWEST))
-
-// 	for p.peekTokenIs(token.COMMA) {
-// 		p.nextToken()
-// 		p.nextToken()
-
-// 		args = append(args, p.parseExpression(LOWEST))
-// 	}
-
-// 	if !p.expectPeek(token.RPAREN) {
-// 		return nil
-// 	}
-
-// 	return args
-// }
-
 func (p *Parser) parseStringLiteral() ast.Expression {
 	return &ast.StringLiteral{Token: p.curToken, Value: p.curToken.Literal}
 }
@@ -462,6 +436,31 @@ func (p *Parser) parseIndexExpression(left ast.Expression) ast.Expression {
 		return nil
 	}
 	return exp
+}
+
+// loops over key-value expression pairs by checking for a closing token.RBRACE 
+// and calling parseExpression two times.
+// Also fills hash.Pairs
+func (p *Parser) parseHashLiteral() ast.Expression {
+	hash := &ast.HashLiteral{Token: p.curToken}
+	hash.Pairs = make(map[ast.Expression]ast.Expression)
+	for !p.peekTokenIs(token.RBRACE) {
+		p.nextToken()
+		key := p.parseExpression(LOWEST)
+		if !p.expectPeek(token.COLON) {
+			return nil
+		}
+		p.nextToken()
+		value := p.parseExpression(LOWEST)
+		hash.Pairs[key] = value
+		if !p.peekTokenIs(token.RBRACE) && !p.expectPeek(token.COMMA) {
+			return nil
+		}
+	}
+	if !p.expectPeek(token.RBRACE) {
+		return nil
+	}
+	return hash
 }
 
 //// HELPER METHODS ////

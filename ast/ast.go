@@ -116,6 +116,11 @@ type IndexExpression struct {
 	Index Expression
 }
 
+type HashLiteral struct {
+	Token token.Token // the '{' token
+	Pairs map[Expression]Expression
+}
+
 func (p *Program) TokenLiteral() string {
 	if len(p.Statements) > 0 {
 		return p.Statements[0].TokenLiteral()
@@ -142,6 +147,7 @@ func (ce *CallExpression) expressionNode()   {}
 func (sl *StringLiteral) expressionNode()    {}
 func (al *ArrayLiteral) expressionNode()     {}
 func (ie *IndexExpression) expressionNode()  {}
+func (hl *HashLiteral) expressionNode() {}
 
 func (ls *LetStatement) TokenLiteral() string        { return ls.Token.Literal }
 func (i *Identifier) TokenLiteral() string           { return i.Token.Literal }
@@ -158,6 +164,7 @@ func (ce *CallExpression) TokenLiteral() string      { return ce.Token.Literal }
 func (sl *StringLiteral) TokenLiteral() string       { return sl.Token.Literal }
 func (al *ArrayLiteral) TokenLiteral() string        { return al.Token.Literal }
 func (ie *IndexExpression) TokenLiteral() string     { return ie.Token.Literal }
+func (hl *HashLiteral) TokenLiteral() string { return hl.Token.Literal }
 
 // Programs String method creates a buffer and writes the return value of each statement's String() method to it
 func (p *Program) String() string {
@@ -304,5 +311,16 @@ func (ie *IndexExpression) String() string {
 	out.WriteString("[")
 	out.WriteString(ie.Index.String())
 	out.WriteString("])")
+	return out.String()
+}
+
+func (hl *HashLiteral) String() string {
+	var out bytes.Buffer
+	pairs := []string{}
+	for key, value := range hl.Pairs {
+		pairs = append(pairs, key.String() + ":" + value.String())
+	}
+	out.WriteString("{")
+	out.WriteString(strings.Join(pairs, ", "))
 	return out.String()
 }
